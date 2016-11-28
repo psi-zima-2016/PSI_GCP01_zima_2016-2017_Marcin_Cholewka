@@ -1,10 +1,11 @@
 #include <iostream>
+#include <vector>
 #include "Adaline.h"
 using namespace std;
 
 int main()
 {
-	Adaline adaline;
+	HebbOj hebbOj;
 	system("pause");
 	return 0;
 	//try  // w instrukcjach poni¿ej mo¿e coœ siê nie udaæ

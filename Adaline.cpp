@@ -3,51 +3,39 @@
 #include <ctime>
 #include <cmath>
 #include <iomanip>
+#include <vector>
 #include "Adaline.h"
 using namespace std;
 
-void Adaline::Allocate()
+void HebbOj::fillVector(vector <Neuron>& neurons)
 {
-	neuron = new Neuron[numberOfNeurons];
-
-	// deklaracja pamiêci dla tablic neuronów
-	for (int i = 0; i < numberOfSignals; i++)
-	{
-		neuron[i].tabX = new int[numberOfSignals]; // kolumna sygna³ów
-		neuron[i].wX = new float[numberOfSignals]; // kolumna wag
-		neuron[i].dW = new float[numberOfSignals]; // ró¿nice wag
-		neuron[i].output = 0;
-		neuron[i].z = 0;
-		neuron[i].y = -1;
-
-		for (int j = 0; j < numberOfSignals; j++)
-		{
-			neuron[i].tabX[j] = 0;
-			neuron[i].dW[j] = 0;
-			neuron[i].wX[j] = 0;
-		}
-	}
-}
-
-void Adaline::fillArrays()
-{
-	// przypisanie wartoœci do sieci
 	for (int i = 0; i < numberOfNeurons; i++)
 	{
+		Neuron neurony;
+		neurony.output = 0;
+		neurony.z = 0;
+		neurony.y = -1;
+		
 		for (int j = 0; j < numberOfSignals; j++)
 		{
-			cout << "Wprowadz sygnal [" << i << "," << j << "]: "; cin >> neuron[i].tabX[j];
-			neuron[i].wX[j] = 0.2+ 0.1*(j+1) - 0.08*(i+1);
-			neuron[i].dW[j] = 0;
+			neurony.tabX.push_back(0);
+			cout << "Enter signal [" << i << "," << j << "]: "; cin >> neurony.tabX[j];
+			neurony.wX.push_back(0.2 + 0.1*(j + 1) - 0.08*(i + 1));
+			neurony.dW.push_back(0);
 		}
-		cout << "Wprowadz oczekiwane wyjscie: "; cin >> neuron[i].z;
+		cout << "Enter expected output: "; cin >> neurony.z;
+		neurons.push_back(neurony); // wpisujemy pierwszy (kolejny) wektor do naszej g³ównej tablicy neuronów
 	}
+
+	system("pause");
+	Hebb(neurons);
 }
 
 // funkcja licz¹ca regu³ê delta, ustalanie y
 
-void Adaline::Delta()
+void HebbOj::Hebb(vector <Neuron>& neuron)
 {
+	cout << "Iloœæ epok: " << iterations << endl;
 	clock_t start, end;
 
 	for (int it = 0; it < iterations; it++)
@@ -66,13 +54,18 @@ void Adaline::Delta()
 				neuron[i].y = -1;
 		}
 
-		// realizacja regu³y delta
+		// regu³y
 		for (int i = 0; i < numberOfNeurons; i++)
 		{
 			for (int j = 0; j < numberOfSignals; j++)
 			{
 				neuron[i].dW[j] = eta*(neuron[i].z - neuron[i].output)*neuron[i].tabX[j]; // delta
-				neuron[i].wX[j] += neuron[i].dW[j]; // aktualizacja wagi
+				//neuron[i].dW[j] = eta*neuron[i].z*neuron[i].tabX[j]; // Hebb with teacher
+				//neuron[i].dW[j] = eta*neuron[i].output*neuron[i].tabX[j]; //nHebb without teacher
+				//neuron[i].dW[j] = eta*neuron[i].output*(neuron[i].tabX[j] - neuron[i].output*neuron[i].wX[j]); // Oj, wst. pr. wyjœcie
+				//neuron[i].dW[j] = eta*neuron[i].output*(neuron[i].tabX[j] - j*neuron[i].wX[j]); // Hebb z zapominaniem
+				neuron[i].wX[j] += neuron[i].dW[j]; // aktualizacja wagi zwyk³a
+				//neuron[i].wX[j] = (neuron[i].wX[j] * (1 - forget)) + neuron[i].dW[j]; // aktualizacja wagi dla Hebba z zapominaniem
 			}
 		}
 
@@ -90,7 +83,7 @@ void Adaline::Delta()
 			cout << "y" << "\t" << endl;
 		}
 
-		showResult(); // wypiszmy rezultat zmian
+		showResult(neuron); // wypiszmy rezultat zmian
 	}
 
 	end = clock(); // bie¿¹cy czas systemowy w ms
@@ -99,7 +92,7 @@ void Adaline::Delta()
 	cout << endl << "Czas wykonywania " << iterations << " iteracji to w ms: " << delta << endl;
 }
 
-void Adaline::showResult()
+void HebbOj::showResult(vector <Neuron>& neuron)
 {
 			for (int i = 0; i < numberOfNeurons; i++)
 			{
@@ -126,14 +119,15 @@ void Adaline::showResult()
 			cout << "_____________" << endl;
 }
 
-Adaline::Adaline()
+HebbOj::HebbOj()
 {
 	iterations = 100;
-	numberOfNeurons = 2;
-	numberOfSignals = 3;
-	eta = 0.6;
+	numberOfNeurons = 2; // important
+	numberOfSignals = 3; // important
+	eta = 0.1;
+	forget = 0.5;
 
-	Allocate();
-	fillArrays();
-	Delta();
+	fillVector(neurony);
+	//fillArrays();
+	//Delta();
 }
