@@ -3,6 +3,10 @@
 #include <iostream>
 using namespace std;
 
+const int wiersze = 7;
+const int kolumny = 5;
+const int liczby = 3;
+
 class MLP {
 public:
 	int* n;
@@ -14,6 +18,7 @@ public:
 	double ** Z; // wartoœæ oczekiwana
 	double *** W; // tablica wag
 	double *** W1; // tablica poprzednich wag, potrzebna do obliczenia momentum
+	int WZORZEC[wiersze][kolumny][liczby];
 	double tmp; // wartoœæ dla tablicy tymczasowej
 	double RMS;
 	double ERMS; // b³¹d przeliczany dla ca³ej sieci. d¹¿ymy, ¿eby wynosi³ < 0.01
@@ -27,6 +32,8 @@ public:
 
 	// funkcje
 	void wypelnijWagi();
+	void utworzWzorce();
+	void wprowadzWejscia();
 	void Epoka();
 	MLP();
 	~MLP();
