@@ -1,10 +1,10 @@
 #include <iostream>
-#include "Header.h"
+#include "Functions.h"
 using namespace std;
 
 int main()
 {
-	MLP mlp;
+	Kohonen kohonen;
 	system("pause");
 	return 0;
 }
