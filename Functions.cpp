@@ -10,7 +10,7 @@
 using namespace std::chrono;
 using namespace std;
 
-void Kohonen::wypelnijWagi()
+void WTA::wypelnijWagi()
 {
 	srand(time(NULL));
 	for (int i = 1; i < numberOfLayers; i++) // warstwa
@@ -31,7 +31,7 @@ void Kohonen::wypelnijWagi()
 	}
 }
 
-void Kohonen::wprowadzWejsciaUczace()
+void WTA::wprowadzWejsciaUczace()
 {
 	int liczba = rand() % 3;
 
@@ -39,7 +39,7 @@ void Kohonen::wprowadzWejsciaUczace()
 		O[0][i] = WZOR[0][i][liczba]; // pomnó¿my przez wagê od razu
 }
 
-void Kohonen::wprowadzWejsciaTestowe()
+void WTA::wprowadzWejsciaTestowe()
 {
 	int liczba = rand() % 3;
 	int kategoria = rand() % 2;
@@ -48,7 +48,7 @@ void Kohonen::wprowadzWejsciaTestowe()
 		O[0][i] = TEST[kategoria][i][liczba]; // pomnó¿my przez wagê od razu
 }
 
-void Kohonen::Epoki()
+void WTA::Epoki()
 {
 	ofstream WYJSCIAtxt;
 	WYJSCIAtxt.open("WYJSCIA.txt", std::ios::app);
@@ -61,8 +61,7 @@ void Kohonen::Epoki()
 
 	for (int it = 0; it < uczaceIteracje; it++)
 	{
-		WYJSCIAtxt << it << "                ";
-		eta = 0.1 - it*0.00002; // wspó³czynnik eta dla Kohonena
+		eta = 0.1 - it*0.01; // wspó³czynnik eta dla WTAa
 		//eta = 0.5;
 
 		if (!it % 4 == 0)
@@ -76,88 +75,46 @@ void Kohonen::Epoki()
 				I[i][j] = 0.0;
 				for (int k = 0; k < n[i - 1]; k++) // il. synaps w neuronie równa liczbie neuronów poprzedniej warstwy
 					I[i][j] += O[i - 1][k] * W[i][j][k]; // iloczyn sygna³ów wejœciowych przez wagi dla danych neuronów
-				// O[i][j] = 1.0 / (1.0 + exp(alfa*(-I[i][j]))); // funkcja aktywacji
 				O[i][j] = I[i][j];
-				
-				if (i == 2)
-					WYJSCIAtxt << O[i][j] << "               ";
 			}
-		WYJSCIAtxt << endl;
 
-		// wybierzmy neurony z najwiêkszymi wyjœciami (warstwa druga i trzecia)
+		int jNaj2 = 0; // zapamiêtajmy numery najwiêkszych wyjœæ z warstwy 2
+		for (int j = 0; j < n[1]-1; j++) // wybierzmy najwiêkszy neuron z warstwy drugiej
+			if (!(O[1][jNaj2] > O[1][j + 1]))
+				jNaj2 = j + 1;
 
-		int jNaj2 = 0;
-		int jNaj3 = 0; // zapamiêtajmy numery najwiêkszych wyjœæ z warstwy 2 i 3
-
-		for (int i = 1; i < numberOfLayers; i++) // warstwa 2 i 3
+		for (int j = 0; j < n[1]; j++) // po jego wybraniu dajmy mu wartoœæ jeden, a resztê wyzerujmy
 		{
-			for (int j = 0; j < n[i]-1; j++) // neurony 2 i 3 warstwy
-			{
-				if (i == 1)
-					if (!(O[i][jNaj2] > O[i][j + 1]))
-						jNaj2 = j + 1;
-
-				if (i == 2)
-					if (!(O[i][jNaj3] > O[i][j + 1]))
-						jNaj3 = j+1;
-			}
+			if (j == jNaj2)
+				O[1][j] = 1;
+			else
+				O[1][j] = 0;
 		}
 
 		// znormalizujmy wektory wejœciowe
-
-		double O2 = 0;
-		double O3 = 0;
-
-		for (int i = 1; i < numberOfLayers; i++) // warstwa 2 i 3
+		double Nor = 0;
+		double tmp = 0;
+		for (int j = 0; j < n[1]; j++) // wejœcia neuronów 2 i 3 warstwy
 		{
-			for (int j = 0; j < n[i]; j++) // wejœcia neuronów 2 i 3 warstwy
-			{
-				if (i == 1)
-				{
-					O2 += O[i-1][j]* O[i - 1][j];
-					O2 = sqrt(O2);
-				}
-
-				if (i == 2)
-				{
-					O3 += O[i-1][j] * O[i - 1][j];
-					O3 = sqrt(O3);
-				}
-			}
-		}
-
-		for (int i = 1; i < numberOfLayers; i++) // warstwa 2 i 3
-		{
-			for (int j = 0; j < n[i]; j++) // neurony 2 i 3 warstwy
-			{
-				if (i == 1)
-					Iprim[0][j] = O[i - 1][j] / O2;
-				if (i == 2)
-					Iprim[1][j] = O[i - 1][j] / O3;
-			}
+			tmp = O[0][j] * O[0][j];
+			tmp = sqrt(tmp);
+			Nor += tmp;
 		}
 
 		// dostosowywanie wag
 		for (int i = 1; i < numberOfLayers; i++)
-			//for (int j = 0; j < n[i]; j++)
-				for (int k = 0; k < n[i - 1]; k++)
-				{
-					if (i == 1)
-					{
-						tmp = W[i][jNaj2][k]; // zmieniamy tylko wagi dla najlepszego neuronu, warstwa ukryta
-						W[i][jNaj2][k] += eta*(Iprim[0][k] - W1[i][jNaj2][k]);
-						W1[i][jNaj2][k] = tmp;
-					}
+			for (int k = 0; k < n[i - 1]; k++)
+			{
+					W[i][jNaj2][k] += eta*((O[0][k]/Nor) - W1[i][jNaj2][k]);
+			}
 
-					if (i == 2)
-					{
-						tmp = W[i][jNaj3][k]; // zmieniamy tylko wagi dla najlepszego neuronu, warstwa wyjœciowa
-						W[i][jNaj3][k] += eta*(Iprim[1][k] - W1[i][jNaj3][k]);
-						W1[i][jNaj3][k] = tmp;
-					}
-				}
+		WYJSCIAtxt << "Epoka: " << it << "       ";
+		WYJSCIAtxt << "Wyjscie 0: " << O[numberOfLayers - 1][0] << "       ";
+		WYJSCIAtxt << "Wyjscie 1: " << O[numberOfLayers - 1][1] << "       ";
+		WYJSCIAtxt << "Wyjscie 2: " << O[numberOfLayers - 1][2] << "       ";
+		WYJSCIAtxt << endl;
 
-		if (it > uczaceIteracje - 11) // nasze ostatnie kilka epok, jest to zestaw testowy
+		if (it) // nasze ostatnie kilka epok, jest to zestaw testowy
 		{
 			cout << endl << endl; // narysuje nam liczbê
 			for (int i = 0; i < 7; i++)
@@ -171,6 +128,8 @@ void Kohonen::Epoki()
 				}
 				cout << endl;
 			}
+
+			cout << "Epoka: " << it << endl;
 			cout << "Wyjscie 0: " << O[numberOfLayers - 1][0] << endl;
 			cout << "Wyjscie 1: " << O[numberOfLayers - 1][1] << endl;
 			cout << "Wyjscie 2: " << O[numberOfLayers - 1][2] << endl;
@@ -187,131 +146,23 @@ void Kohonen::Epoki()
 		system_clock::now().time_since_epoch());
 
 	cout << endl << "Czas nauczania dla naszych epok: " << stop.count() - start.count() << " ms" << endl;
-
-	//....................................... TESTY
-
-	for (int it = 0; it < testoweIteracje; it++)
-	{
-		eta = 0.1 - it*0.000026; // wspó³czynnik eta dla Kohonena
-		wprowadzWejsciaTestowe();
-
-		for (int i = 1; i < numberOfLayers; i++) // zak³ada, ¿e outputy z pierwszej warstwy s¹ zawsze wprowadzane
-			for (int j = 0; j < n[i]; j++)
-			{
-				I[i][j] = 0.0;
-				for (int k = 0; k < n[i - 1]; k++) // il. synaps w neuronie równa liczbie neuronów poprzedniej warstwy
-					I[i][j] += O[i - 1][k] * W[i][j][k]; // iloczyn sygna³ów wejœciowych przez wagi dla danych neuronów
-				O[i][j] = 1.0 / (1.0 + exp(alfa*(-I[i][j]))); // funkcja aktywacji
-			}
-
-		// wybierzmy neurony z najwiêkszymi wyjœciami (warstwa druga i trzecia)
-
-		int jNaj2 = 0;
-		int jNaj3 = 0; // zapamiêtajmy numery najwiêkszych wyjœæ z warstwy 2 i 3
-
-		for (int i = 1; i < numberOfLayers; i++) // warstwa 2 i 3
-		{
-			for (int j = 0; j < n[i] - 1; j++) // neurony 2 i 3 warstwy
-			{
-				if (i == 1)
-					if (O[i][j] > O[i][j + 1])
-						jNaj2 = j;
-
-				if (i == 2)
-					if (O[i][j] > O[i][j + 1])
-						jNaj3 = j;
-			}
-		}
-
-		// znormalizujmy wektory wejœciowe
-
-		double O2 = 0;
-		double O3 = 0;
-
-		for (int i = 1; i < numberOfLayers; i++) // warstwa 2 i 3
-		{
-			for (int j = 0; j < n[i]; j++) // wejœcia neuronów 2 i 3 warstwy
-			{
-				if (i == 1)
-					O2 += O[i - 1][j];
-
-				if (i == 2)
-					O3 += O[i - 1][j];
-			}
-		}
-
-		for (int i = 1; i < numberOfLayers; i++) // warstwa 2 i 3
-		{
-			for (int j = 0; j < n[i]; j++) // neurony 2 i 3 warstwy
-			{
-				if (i == 1)
-					Iprim[0][j] = O[i - 1][j] / O2;
-				if (i == 2)
-					Iprim[1][j] = O[i - 1][j] / O3;
-			}
-		}
-
-		// dostosowywanie wag
-		for (int i = 1; i < numberOfLayers; i++)
-			//for (int j = 0; j < n[i]; j++)
-			for (int k = 0; k < n[i - 1]; k++)
-			{
-				if (i == 1)
-				{
-					tmp = W[i][jNaj2][k]; // zmieniamy tylko wagi dla najlepszego neuronu, warstwa ukryta
-					W[i][jNaj2][k] += eta*(Iprim[0][k] - W1[i][jNaj2][k]);
-					W1[i][jNaj2][k] = tmp;
-				}
-
-				if (i == 2)
-				{
-					tmp = W[i][jNaj3][k]; // zmieniamy tylko wagi dla najlepszego neuronu, warstwa wyjœciowa
-					W[i][jNaj3][k] += eta*(Iprim[1][k] - W1[i][jNaj3][k]);
-					W1[i][jNaj3][k] = tmp;
-				}
-			}
-
-			cout << endl << endl; // narysuje nam liczbê
-			for (int i = 0; i < 7; i++)
-			{
-				for (int j = 0 + (i * 5); j < 5 + (i * 5); j++)
-				{
-					if (O[0][j] == 1)
-						cout << "O";
-					else
-						cout << " ";
-				}
-				cout << endl;
-			}
-			cout << "Wyjscie testowe 0: " << O[numberOfLayers - 1][0] << endl;
-			cout << "Wyjscie testowe 1: " << O[numberOfLayers - 1][1] << endl;
-			cout << "Wyjscie testowe 2: " << O[numberOfLayers - 1][2] << endl;
-	/*		cout << "Wyjscie testowe 3: " << O[numberOfLayers - 1][3] << endl;
-			cout << "Wyjscie testowe 4: " << O[numberOfLayers - 1][4] << endl;
-			cout << "Wyjscie testowe 5: " << O[numberOfLayers - 1][5] << endl;
-			cout << "Wyjscie testowe 6: " << O[numberOfLayers - 1][6] << endl;
-			cout << "Wyjscie testowe 7: " << O[numberOfLayers - 1][7] << endl;
-			cout << "Wyjscie testowe 8: " << O[numberOfLayers - 1][8] << endl;
-			cout << "Wyjscie testowe 9: " << O[numberOfLayers - 1][9] << endl;*/
-	}
 }
 
-Kohonen::Kohonen()
+WTA::WTA()
 {
 	// wstêpna charakterystyka sieci
 
-	numberOfLayers = 3;
+	numberOfLayers = 2;
 	n = new int[numberOfLayers]; // iloœæ neuronów w danej warstwie sieci
 	n[0] = 35;
-	n[1] = 10;
-	n[2] = 3;
+	n[1] = 3;
 
 	numberOfNeurons = 35;
 	numberOfSignals = 35;
 	alfa = 0.6;
 
 	// wpisywanie podstawowych wartoœci
-	uczaceIteracje = 5600;
+	uczaceIteracje = 10000;
 	testoweIteracje = 5;
 
 	// wagi
@@ -397,7 +248,7 @@ Kohonen::Kohonen()
 	Epoki();
 }
 
-Kohonen::~Kohonen()
+WTA::~WTA()
 {
 	delete[] n;
 	n = nullptr;
